@@ -5,6 +5,7 @@ using MonoMod.Cil;
 using RoR2;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace BossVariety
 {
@@ -23,11 +24,11 @@ namespace BossVariety
         public const string PluginGUID = PluginAuthor + "." + "BossVariety";
         public const string PluginAuthor = "OakPrime";
         public const string PluginName = "BossVariety";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.0.1";
 
         public static ManualLogSource logger;
 
-        private Queue<DirectorCard> _prevBosses = new Queue<DirectorCard>();
+        private Queue<GameObject> _prevBosses = new Queue<GameObject>();
         private int MAX_QUEUE_COUNT = 2;
 
         //The Awake() method is run at the very start when the game is initialized.
@@ -76,7 +77,7 @@ namespace BossVariety
                         for (int i = 0; i < weightedSelection.Count; ++i)
                         {
                             WeightedSelection<DirectorCard>.ChoiceInfo choiceInfo = weightedSelection.GetChoice(i);
-                            if (_prevBosses.Contains(choiceInfo.value))
+                            if (_prevBosses.Contains(choiceInfo.value.spawnCard.prefab))
                             {
                                 oldBossIndices.Add(i);
                             }
@@ -92,7 +93,7 @@ namespace BossVariety
                             Log.LogDebug("Starting iteration over oldBossIndices of size: " + oldBossIndices.Count);
                             foreach (int index in oldBossIndices)
                             {
-                                Log.LogDebug("Removing choice: " + weightedSelection.GetChoice(index).value.spawnCard);
+                                Log.LogDebug("Removing choice: " + weightedSelection.GetChoice(index).value.spawnCard.name);
                                 weightedSelection.RemoveChoice(index);
                             }
                         }
@@ -113,10 +114,10 @@ namespace BossVariety
                     c.EmitDelegate<Func<DirectorCard, DirectorCard>>(directorCard =>
                     {
                         Log.LogDebug("Adding boss to ban pool: " + directorCard.spawnCard.name);
-                        _prevBosses.Enqueue(directorCard);
+                        _prevBosses.Enqueue(directorCard.spawnCard.prefab);
                         while (_prevBosses.Count > MAX_QUEUE_COUNT)
                         {
-                            Log.LogDebug("Removing boss from ban pool: " + _prevBosses.Dequeue().spawnCard.name);
+                            Log.LogDebug("Removing boss from ban pool: " + _prevBosses.Dequeue().name);
                         }
                         return directorCard;
                     });

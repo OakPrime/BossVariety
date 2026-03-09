@@ -24,7 +24,7 @@ namespace BossVariety
         public const string PluginGUID = PluginAuthor + "." + "BossVariety";
         public const string PluginAuthor = "OakPrime";
         public const string PluginName = "BossVariety";
-        public const string PluginVersion = "1.0.1";
+        public const string PluginVersion = "1.0.2";
 
         public static ManualLogSource logger;
 
@@ -71,18 +71,26 @@ namespace BossVariety
                         }
 
                         // ensure weightedSelection has a value outside of _prevBosses
-                        var oldBossIndices = new HashSet<int>();
+                        var oldBossIndices = new List<int>();
                         var newBossAvailable = false;
+                        //Log.LogDebug("Looping over banned bosses...");
+                        foreach (GameObject prefab in _prevBosses)
+                        {
+                            Log.LogDebug("Repeat boss is banned this stage: " + prefab.name);
+                        }
                         //Log.LogDebug("Starting iteration over weightedSelection of size: " + weightedSelection.Count);
                         for (int i = 0; i < weightedSelection.Count; ++i)
                         {
                             WeightedSelection<DirectorCard>.ChoiceInfo choiceInfo = weightedSelection.GetChoice(i);
+                            //Log.LogDebug("Stage potential boss spawn: " + choiceInfo.value.spawnCard.prefab.name);
                             if (_prevBosses.Contains(choiceInfo.value.spawnCard.prefab))
                             {
+                                //Log.LogDebug("Added potential boss spawn to toBan indices");
                                 oldBossIndices.Add(i);
                             }
                             else
                             {
+                                //Log.LogDebug("Potential boss spawn will remain");
                                 newBossAvailable = true;
                             }
                         }
@@ -90,15 +98,21 @@ namespace BossVariety
                         // Loop through weightedSelection and remove _prevBosses cards
                         if (newBossAvailable)
                         {
-                            Log.LogDebug("Starting iteration over oldBossIndices of size: " + oldBossIndices.Count);
-                            foreach (int index in oldBossIndices)
+                            //Log.LogDebug("Starting iteration over oldBossIndices of size: " + oldBossIndices.Count);
+                            for (int i = oldBossIndices.Count - 1; i >= 0; --i)
                             {
-                                Log.LogDebug("Removing choice: " + weightedSelection.GetChoice(index).value.spawnCard.name);
-                                weightedSelection.RemoveChoice(index);
+                                // Spawncard name was working well as a log before
+                                var oldBossIndex = oldBossIndices[i];
+                                Log.LogDebug("Stopping repeat boss from spawning: " + weightedSelection.GetChoice(oldBossIndex).value.spawnCard.prefab.name);
+                                weightedSelection.RemoveChoice(oldBossIndex);
                             }
                         }
+                        else
+                        {
+                            Log.LogDebug("Only repeat bosses are available this stage.");
+                        }
 
-                        return weightedSelection;
+                            return weightedSelection;
                     });
 
                     if (!c.TryGotoNext(
@@ -113,7 +127,7 @@ namespace BossVariety
                     c.Index += 2;
                     c.EmitDelegate<Func<DirectorCard, DirectorCard>>(directorCard =>
                     {
-                        Log.LogDebug("Adding boss to ban pool: " + directorCard.spawnCard.name);
+                        Log.LogDebug("Adding boss to ban pool: " + directorCard.spawnCard.prefab.name);
                         _prevBosses.Enqueue(directorCard.spawnCard.prefab);
                         while (_prevBosses.Count > MAX_QUEUE_COUNT)
                         {
